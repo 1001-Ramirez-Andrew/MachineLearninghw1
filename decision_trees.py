@@ -59,11 +59,48 @@ def DT_train_binary(X, Y, max_depth):
 
     #recursive function called based on entropies of branches
     if entropies[fID][0] == 0 and entropies [fID][1] == 0:
-        return db.append(fID).append(subsets[fID][0][0]).append(subsets[fID][1][0])
+        db.append(fID)
+        db.append(subsets[fID][0][0])
+        db.append(subsets[fID][1][0])
+        return db
     elif entropies[fID][0] == 0:
-        return db.append(fID).append(subsets[fID][0][0]).append(DT_train_binary(sampleSubsetRight, subsets[fID][1], max_depth - 1))
+        db.append(fID)
+        db.append(subsets[fID][0][0])
+        db.append(DT_train_binary(sampleSubsetRight, subsets[fID][1], max_depth - 1))
+        return db
     elif entropies[fID][1] == 0:
-        return db.append(fID).append(DT_train_binary(sampleSubsetLeft, subsets[fID][0], max_depth - 1)).append(subsets[fID][1][0])
+        db.append(fID)
+        db.append(DT_train_binary(sampleSubsetLeft, subsets[fID][0], max_depth - 1))
+        db.append(subsets[fID][1][0])
+        return db
     else:
-        return db.append(fID).append(DT_train_binary(sampleSubsetLeft, subsets[fID][0], max_depth - 1)).append(DT_train_binary(sampleSubsetRight, subsets[fID][1], max_depth - 1))
+        db.append(fID)
+        db.append(DT_train_binary(sampleSubsetLeft, subsets[fID][0], max_depth - 1))
+        db.append(DT_train_binary(sampleSubsetRight, subsets[fID][1], max_depth - 1))
+        return db
+
+def DT_make_prediction(x, DT):
+    #if x is sample then each feature will index the sample
+    isYes = bool(x[DT[0]])
+    #THe base case will occur when the value at branch is an int instead of list
+    #THe first index of the DT will be the feature value
+    if isYes:
+        if type(DT[2]) == type(int(1)):
+            return DT[2]
+        else:
+            return DT_make_prediction(x, DT[2])
+    else:
+        if type(DT[1]) == type(int(1)):
+            return DT[1]
+        else:
+            return DT_make_prediction(x, DT[1])
+    
+def DT_test_binary(X, Y, DT):
+    numSamples = len(X)
+    numCorrect = 0
+    for i in range(numSamples):
+        prediction = DT_make_prediction(X[i], DT)
+        if prediction == Y[i]:
+            numCorrect = numCorrect + 1
+    return numCorrect/numSamples
 
