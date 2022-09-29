@@ -1,5 +1,9 @@
+#Author:Andrew Ramirez
+#Date:9/28/2022
+#programming Assignment 1 CS422
+
 import numpy as np
-from math import log2
+from math import log2, floor
 
 def DT_train_binary(X, Y, max_depth):
     #the binary dicision tree will be implemented using nested lists
@@ -26,19 +30,27 @@ def DT_train_binary(X, Y, max_depth):
         yesSubset = Y[featureVal]
         noSubset = Y[np.invert(featureVal)]
 
-        probRightYes = np.sum(yesSubset)/yesSubset.size
-        probRightNo = 1 - probRightYes
-        probLeftYes = np.sum(noSubset)/noSubset.size
-        probLeftNo = 1 - probLeftYes
+        try:
+            probRightYes = float(np.sum(yesSubset))/float(yesSubset.size)
+            probRightNo = 1 - probRightYes
+        except:
+            probRightYes = 0.0
+            probRightNo = 0.0
+        try:
+            probLeftYes = float(np.sum(noSubset))/float(noSubset.size)
+            probLeftNo = 1 - probLeftYes
+        except:
+            probLeftYes = 0.0
+            probLeftNo = 0.0
 
         try:
             entropyRight = -probRightYes*log2(probRightYes) - probRightNo*log2(probRightNo)
         except:
-            entropyRight = 0
+            entropyRight = 0.0
         try:
             entropyLeft = -probLeftYes*log2(probLeftYes) - probLeftNo*log2(probLeftNo)
         except:
-            entropyLeft = 0 
+            entropyLeft = 0.0
         weightLeft = noSubset.size/Y.size
         weightRight = yesSubset.size/Y.size
         IGvals.append(entropy - weightLeft*entropyLeft - weightRight*entropyRight)
@@ -52,10 +64,18 @@ def DT_train_binary(X, Y, max_depth):
 
     #Check for max depth, then make guess
     if max_depth == 1:
-        probRightYes = np.sum(subsets[fID][1])/subsets[fID][1].size
-        probLeftYes = np.sum(subsets[fID][0])/subsets[fID][0].size
-        return db.append(fID).append(int(probLeftYes >= 0.5)).append(int(probRightYes > 0.5))
-
+        try:
+            probRightYes = float(np.sum(subsets[fID][1]))/float(subsets[fID][1].size)
+        except:
+            probRightYes = 0
+        try:
+            probLeftYes = float(np.sum(subsets[fID][0]))/float(subsets[fID][0].size)
+        except:
+            probLeftYes = 0
+        db.append(fID)
+        db.append(int(probLeftYes >= 0.5))
+        db.append(int(probRightYes > 0.5))
+        return db
 
     #recursive function called based on entropies of branches
     if entropies[fID][0] == 0 and entropies [fID][1] == 0:
@@ -65,13 +85,13 @@ def DT_train_binary(X, Y, max_depth):
         return db
     elif entropies[fID][0] == 0:
         db.append(fID)
-        db.append(subsets[fID][0][0])
+        db.append(int(subsets[fID][0][0]))
         db.append(DT_train_binary(sampleSubsetRight, subsets[fID][1], max_depth - 1))
         return db
     elif entropies[fID][1] == 0:
         db.append(fID)
         db.append(DT_train_binary(sampleSubsetLeft, subsets[fID][0], max_depth - 1))
-        db.append(subsets[fID][1][0])
+        db.append(int(subsets[fID][1][0]))
         return db
     else:
         db.append(fID)
@@ -81,7 +101,10 @@ def DT_train_binary(X, Y, max_depth):
 
 def DT_make_prediction(x, DT):
     #if x is sample then each feature will index the sample
-    isYes = bool(x[DT[0]])
+    try:
+        isYes = bool(x[DT[0]])
+    except:
+        return 1
     #THe base case will occur when the value at branch is an int instead of list
     #THe first index of the DT will be the feature value
     if isYes:
@@ -103,4 +126,55 @@ def DT_test_binary(X, Y, DT):
         if prediction == Y[i]:
             numCorrect = numCorrect + 1
     return numCorrect/numSamples
+
+def RF_build_random_forest(X, Y, max_depth, num_of_trees):
+    #calculate the numer of samples to randomly select
+    numSamples = len(X)
+    numSubSample = int(floor(.10*numSamples))
+    #combine the sample values and labels into one
+    cols = []
+    for i in range(len(Y)):
+        cols.append([Y[i]])
+    X = np.append(X, cols, axis = 1)
+    rf = []
+    for i in range(num_of_trees):
+        indecies = list(range(len(X)))
+        subIndicies = np.random.choice(indecies, size = numSubSample, replace = False)
+        W = X[subIndicies]
+        try:
+            dt = DT_train_binary(W[ : , :-1], W[ : , -1], max_depth)
+            accuracy = DT_test_binary(W[ : , :-1], W[ : , -1], dt)
+        except:
+            dt = 0
+            accuracy = 0
+        rf.append(dt)
+        print("DT", i, ": ", accuracy)
+    return rf 
+
+def RF_test_random_forest(X, Y, RF):
+    
+    isCorrect = []
+    for i in range(len(X)):
+        sample = X[i]
+        predictions = []
+        for trees in RF:
+           prediction = DT_make_prediction(sample, trees)
+           predictions.append(prediction)
+        majority = sum(predictions)/len(predictions)
+        if majority >=.5:
+            guess = 1
+        else:
+            guess = 0
+        isCorrect.append(int(guess == Y[i]))
+
+    #calculate accuracy
+    accuracy = sum(isCorrect)/len(isCorrect) 
+    return accuracy
+            
+
+
+        
+
+        
+
 

@@ -1,3 +1,8 @@
+#Author:Andrew Ramirez
+#Date:9/28/2022
+#programming Assignment 1 CS422
+
+
 import math
 import numpy as np
 
